@@ -1,22 +1,161 @@
 # ver 3.6 >= required: enable '-w' option for 'docker-compose exec'
-version: "3.6"
+version: "3.8"
+
+networks:
+  # プロジェクト内仮想ネットワーク
+  ## 同一ネットワーク内の各コンテナはサービス名で双方向通信可能
+  appnet:
+    driver: bridge
+    # ネットワークIP範囲を指定する場合
+    # ipam:
+    #   driver: default
+    #   config:
+    #     # 仮想ネットワークのネットワーク範囲を指定
+    #     ## 172.68.0.0/16 の場合、172.68.0.1 ～ 172.68.255.254 のIPアドレスを割り振れる
+    #     ## ただし 172.68.0.1 はゲートウェイに使われる
+    #     - subnet: 172.68.0.0/16
 
 volumes:
-  # volume for db service container
+  # volume for db service container 
   db-data:
+    driver: local
+  # volume for mongo service container 
+  mongo-data:
+    driver: local
 
 services:
-  # cli service container: node:12-alpine
-  # $ docker-compose exec cli $command ...
-  cli:
+  # web service container: php + apache
+  web:
+    build: ./docker/web/
+    logging:
+      driver: json-file
+    # restart: always
+    # 所属ネットワーク
+    networks:
+      - appnet
+    # ポートフォワーディング
+    ports:
+      # http://localhost:${WEB_PORT} => service://web:80
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      # ~www-data: host://./www/ => docker://web:/var/www/
+      ## DocumentRoot: host://./www/app/public/ => docker://web:/var/app/public/
+      - ./www/:/var/www/
+      # 設定ファイル
+      - ./docker/web/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./docker/web/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
+    environment:
+      # USER_ID: www-data のユーザIDを docker 実行ユーザIDに合わせたい場合に利用 (export USER_ID=$UID)
+      ## ユーザIDを合わせないと ./www/ (docker://web:/var/www/) 内のファイル編集が出来なくなる
+      UID: ${USER_ID}
+      # Composer設定
+      COMPOSER_ALLOW_SUPERUSER: 1 # root権限での実行を許可
+      COMPOSER_NO_INTERACTION: 1  # 非対話的にインストール
+      # MySQL接続設定
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: app
+      # TimeZone設定
+      TZ: Asia/Tokyo
+      # VirtualHost
+      VIRTUAL_HOST: web.localhost
+      VIRTUAL_PORT: 80
+      CERT_NAME: default # ローカル環境用SSL証明書
+  
+  # db service container: MySQL server
+  db:
+    image: mysql:5.7
+    logging:
+      driver: json-file
+    # restart: always
+    # ポートフォワーディング
+    ports:
+      # tcp://localhost:${DB_PORT} => service://db:3306
+      - "${DB_PORT:-8033}:3306"
+    # 所属ネットワーク
+    networks:
+      - appnet
+    volumes:
+      # データ永続化: docker-volume.db-data => docker.db:/var/lib/mysql
+      - db-data:/var/lib/mysql
+      # MySQL設定ファイル: host:/./docker/db/my.cnf => /etc/mysql/conf.d/my.cnf 644
+      - ./docker/db/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      # ダンプデータやり取り用
+      - ./docker/db/dump/:/var/dump/
+      # 初回投入データ: ./docker/db/initdb.d/
+      - ./docker/db/initdb.d/:/docker-entrypoint-initdb.d/
+    working_dir: /var/dump/
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: app
+      # TimeZone設定
+      TZ: Asia/Tokyo
+  
+  # pma service container: phpMyAdmin
+  pma:
+    image: phpmyadmin/phpmyadmin
+    logging:
+      driver: json-file
+    # 所属ネットワーク
+    networks:
+      - appnet
+    # ポートフォワーディング
+    ports:
+      # http://localhost:${PMA_PORT} => service://pma:80
+      - "${PMA_PORT:-8057}:80"
+    volumes:
+      - /sessions
+    environment:
+      PMA_ARBITRARY: 1
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: root
+      # VirtualHost
+      VIRTUAL_HOST: pma.localhost
+      VIRTUAL_PORT: 80
+      CERT_NAME: default # ローカル環境用SSL証明書
+  
+  # mailhog service container: local SMTP server + Mail catcher
+  mailhog:
+    image: mailhog/mailhog
+    logging:
+      driver: json-file
+    # 所属ネットワーク
+    networks:
+      - appnet
+    # ポートフォワーディング
+    ports:
+      # http://localhost:${MAILHOG_PORT} => service://mailhog:8025
+      - "${MAILHOG_PORT:-8025}:8025"
+      # - "1025" # SMTP Port: ホスト側ポートはランダムに選出
+    environment:
+      # VirtualHost
+      VIRTUAL_HOST: mail.localhost
+      VIRTUAL_PORT: 8025
+      CERT_NAME: default # ローカル環境用SSL証明書
+
+  # redis service container: session database + cache server
+  redis:
+    image: redis:6
+    logging:
+      driver: json-file
+    # 所属ネットワーク
+    networks:
+      - appnet
+
+  # node service container: node:12-alpine
+  # $ docker-compose exec node $command ...
+  node:
     build:
-      context: ./ # build from ./Dockerfile
+      context: ./docker/node/
       args:
         # use current working user id
         UID: $USER_ID
     logging:
       driver: json-file
-    # tcp://localhost:<port> => service://cli:<port>
+    # tcp://localhost:<port> => service://node:<port>
     network_mode: host
     # enable terminal
     tty: true
@@ -26,61 +165,84 @@ services:
     environment:
       TZ: Asia/Tokyo
 
-  # db service container: mongo db v4.4
-  db:
+  # mongo service container: mongo db v4.4
+  mongo:
     image: mongo:4.4
     logging:
       driver: json-file
     # restart: always
+    # 所属ネットワーク
+    networks:
+      - appnet
     ports:
-      # tcp://localhost:${DB_PORT} => service://db:27017
-      - ${DB_PORT:-27017}:27017
+      # tcp://localhost:${MONGO_PORT} => service://mongo:27017
+      - ${MONGO_PORT:-27017}:27017
     volumes:
       # database data persistence
-      - db-data:/data/db/
+      - mongo-data:/data/db/
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
       TZ: Asia/Tokyo
 
-  # admin service container: mongo-express:latest
-  admin:
+  # express service container: mongo-express:latest
+  express:
     image: mongo-express:latest
     logging:
       driver: json-file
-    # restart: always
-    links:
-      - db
+    # 所属ネットワーク
+    networks:
+      - appnet
     ports:
-      # http://localhost:${MONGO_EXPRESS_PORT} => service://admin:8081
+      # http://localhost:${MONGO_EXPRESS_PORT} => service://express:8081
       - ${MONGO_EXPRESS_PORT:-8081}:8081
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: root
-      ME_CONFIG_MONGODB_SERVER: db # service://db
+      ME_CONFIG_MONGODB_SERVER: mongo # MongoDB: service://mongo:27017
       ME_CONFIG_MONGODB_PORT: 27017
       TZ: Asia/Tokyo
-  
-  # mongodb rest api server service container: softinstigate/restheart:5.1.1
-  restheart:
-    image: softinstigate/restheart:5.1.1
-    logging:
-      driver: json-file
-    # restart: always
-    links:
-      - db
+      # VirtualHost
+      VIRTUAL_HOST: mongo.localhost
+      VIRTUAL_PORT: 8081
+      CERT_NAME: default # ローカル環境用SSL証明書
+    
+  # --- local nginx proxy: port 80, 443 を専有するため、別のプロジェクト開発時には停止する ---
+  ## local nginx proxy を停止する場合: $ docker-compose stop proxy
+  # vhostプロキシサーバ
+  proxy:
+    image: jwilder/nginx-proxy
+    # 所属ネットワーク
+    networks:
+      - appnet
+    privileged: true # ルート権限
     ports:
-      # http://localhost:${RESTHEART_PORT} => service://restheart:8080
-      - ${RESTHEART_PORT:-8080}:8080
-    # ACL（ユーザ権限・認証）を変更したい場合は、自作の properties ファイルを指定して起動する
-    ## Default `users.yml`:
-    ### - id: admin, password: secret, role: admin
-    ### - id: user, password: secret, role: user
-    ## Default `acl.yml`:
-    ### - admin: role can execute any request
-    ### - user: role can execute any request on collection /{username}
-    command: ["--envFile", "/opt/restheart/etc/default.properties"]
+      - "80:80"   # http
+      - "443:443" # https
+    volumes:
+      - /var/run/docker.sock/:/tmp/docker.sock/:ro
+      - /usr/share/nginx/html/
+      - /etc/nginx/vhost.d/
+      - ./docker/certs/:/etc/nginx/certs/:ro # letsencryptコンテナが ./docker/certs/ に作成したSSL証明書を読む
+      # - ./docker/nginx.conf:/etc/nginx/nginx.conf # 設定ファイル
+      # - ./docker/logs/:/var/nginx/logs/:rw # ログ
     environment:
-      # MONGO_URI: mongodb://<user>:<password>@<host>
-      MONGO_URI: mongodb://root:root@db
-      TZ: Asia/Tokyo
+      DHPARAM_GENERATION: "false"
+    labels:
+      com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: "true"
+
+  # 無料SSL証明書発行コンテナ
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    # 所属ネットワーク
+    networks:
+      - appnet
+    volumes:
+      - /var/run/docker.sock/:/var/run/docker.sock/:ro
+      - /usr/share/nginx/html/
+      - /etc/nginx/vhost.d/
+      - ./docker/certs/:/etc/nginx/certs/:rw # ./docker/certs/ にSSL証明書を書き込めるように rw モードで共有
+    depends_on:
+      - proxy # proxyコンテナの後で起動
+    environment:
+      NGINX_PROXY_CONTAINER: proxy
