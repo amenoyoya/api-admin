@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Cron\CronExpression;
 
 class AppServiceProvider extends ServiceProvider
 {
