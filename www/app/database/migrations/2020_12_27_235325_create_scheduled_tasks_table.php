@@ -15,9 +15,8 @@ class CreateScheduledTasksTable extends Migration
     {
         Schema::create('scheduled_tasks', function (Blueprint $table) {
             $table->id();
-            $table->string('schedule')->comment('cronスケジュール');
+            $table->string('schedule', 64)->comment('cronスケジュール');
             $table->text('command')->comment('実行コマンド');
-            $table->enum('type', ['artisan', 'system'])->comment('実行タイプ');
             $table->text('memo')->nullable()->comment('備考');
             $table->timestamps();
         });

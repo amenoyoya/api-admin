@@ -29,13 +29,8 @@ class Kernel extends ConsoleKernel
         // Get all scheduled tasks from the database
         foreach (ScheduledTask::all() as $task) {
             $schedule->call(function() use($task) {
-                // Run the scheduled task here
                 Log::info('[scheduled task]' . \Carbon\Carbon::now() . ': ' . $task->command);
-                if ($task->type === 'artisan') {
-                    $schedule->command($task->command);
-                } else {
-                    $schedule->exec($task->command);
-                }
+                exec($task->command);
             })->cron($task->schedule)->runInBackground();
         }
     }
