@@ -167,3 +167,218 @@ $ ./x node yarn create strapi-app app
 ## $ export USER_ID=$UID && docker-compose exec -w /work/app/ node yarn develop
 $ w=./app/ ./x node yarn develop
 ```
+
+***
+
+## Queue
+
+[imTigger/laravel-job-status](https://github.com/imTigger/laravel-job-status) を使うことで状態監視可能な Queue Job を作成することができる
+
+### Setup
+Queue の揮発性データベースとして Redis を利用する
+
+#### .env
+```bash
+# ...
+
+# queue は redis サーバで管理
+QUEUE_CONNECTION=redis
+
+# docker.service://redis:6379 サーバを利用
+REDIS_HOST=redis
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_CLIENT=phpredis
+```
+
+### Install imTigger/laravel-job-status
+imTigger/laravel-job-status を使って Queue Job の状態管理を行えるようにする
+
+このライブラリはDBテーブル `job_statuses` に、実行中 Job の状態を書き込んで状態管理を行う
+
+- imTigger/laravel-job-status の仕組み
+    - Job が Queue にスタックされたら `job_statuses.status` を `queued` に更新
+    - Queue が Job を終了したときに `job_statuses.status` を `finished` に更新するコールバックを登録
+
+```bash
+# install
+$ ./x web composer require imtigger/laravel-job-status
+
+# ServiceProvider を発行
+$ ./x web php artisan vendor:publish --provider="Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider"
+
+# => following files will generate
+## config/job-status.php
+## database/migrations/***_create_job_statuses_table.php
+
+# job_statuses テーブル作成
+$ ./x web php artisan migrate
+```
+
+#### config/app.php
+```php
+// ...
+'providers' => [
+    // ...
+    Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider::class,
+]
+```
+
+### Test
+以下のような Queue Job で動作確認を行う
+
+#### app/Jobs/TestJob.php
+```php
+namespace App\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Imtigger\LaravelJobStatus\Trackable;
+
+class TestJob implements ShouldQueue
+{
+    // Trackable trait を使うことで job_statuses テーブルを使った状態管理ができるようになる
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
+
+    /**
+     * Create a new job instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->prepareStatus();
+    }
+
+    /**
+     * Execute the job.
+     *
+     * @return void
+     */
+    public function handle()
+    {
+        // ログを出力するだけの Job
+        \Log::info('キュー実行完了');
+    }
+}
+```
+
+#### app/Console/Commands/TestCommand.php
+```php
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use App\Jobs\TestJob;
+
+class TestCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'test:queue';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description';
+
+    /**
+     * Create a new command instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
+    public function handle()
+    {
+        \Log::info('コマンド実行開始');
+
+        // 非同期実行を明確化するために1分遅延させる
+        $job = (new TestJob)->delay(now()->addMinutes(1));
+        dispatch($job);
+
+        // JobStatusId (DB.job_statuses.id) を取得
+        dump($job->getJobStatusId());
+
+        \Log::info('コマンド実行完了');
+    }
+}
+```
+
+#### app/Console/Commands/JobCommand.php
+```php
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Redis;
+use Imtigger\LaravelJobStatus\JobStatus;
+
+class jobCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'job:status {id}';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Command description';
+
+    /**
+     * Create a new command instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
+    public function handle()
+    {
+        // 指定された id の Job の状態を取得
+        dump(JobStatus::find($this->argument('id'))->status);
+    }
+}
+```
+
+#### Execution
+```bash
+# Laravel の Queue 処理 Worker を起動
+## 本番稼働させる場合は、バックグラウンドで処理するためにデーモン化する必要がある
+$ ./x web php artisan queue:work
+
+# TestJob を TestCommand 経由で実行
+$ ./x web php artisan test:queue
+
+# => Queue に追加された Job の id を確認
+
+# JobStatusId: 1 の Job の状態確認
+$ ./x web php artisan job:status 1
+```

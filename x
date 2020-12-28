@@ -516,6 +516,13 @@ EOS
     sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=root/g' ./www/app/.env
     sed -i 's/^MAIL_HOST=.*/MAIL_HOST=mailhog/g' ./www/app/.env
     sed -i 's/^MAIL_PORT=.*/MAIL_PORT=1025/g' ./www/app/.env
+    # cache, session, queue の揮発性データベースとして redis 利用
+    sed -i 's/^REDIS_HOST=.*/REDIS_HOST=redis/g' ./www/app/.env
+    sed -i 's/^CACHE_DRIVER=.*/CACHE_DRIVER=redis/g' ./www/app/.env
+    sed -i 's/^SESSION_DRIVER=.*/SESSION_DRIVER=redis/g' ./www/app/.env
+    sed -i 's/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=redis/g' ./www/app/.env
+    # redis client として php-pecl-redis を利用
+    sed -i '/^REDIS_PORT=.*/a REDIS_CLIENT=phpredis' ./www/app/.env
     # 日本語化
     sed -i "s/'en'/'ja'/g" ./www/app/config/app.php
     sed -i "s/'UTC'/'Asia\/Tokyo'/g" ./www/app/config/app.php
