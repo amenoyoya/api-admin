@@ -4,8 +4,6 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use App\Models\ScheduledTask;
-use Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -26,13 +24,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Get all scheduled tasks from the database
-        foreach (ScheduledTask::all() as $task) {
-            $schedule->call(function() use($task) {
-                Log::info('[scheduled task]' . \Carbon\Carbon::now() . ': ' . $task->command);
-                exec($task->command);
-            })->cron($task->schedule)->runInBackground();
-        }
+        // $schedule->command('inspire')->hourly();
     }
 
     /**

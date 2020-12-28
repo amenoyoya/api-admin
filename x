@@ -163,10 +163,9 @@ WORKDIR /work/
 USER $UID
 EOS
     tee ./www/.gitignore << \EOS
-/*
+/.*
 !/.gitignore
 !/.msmtprc
-!/startup.sh
 EOS
     tee ./www/.msmtprc << \EOS
 # Set default values for all following accounts.
