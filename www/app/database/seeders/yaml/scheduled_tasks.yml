@@ -1,0 +1,129 @@
+data_type:
+  id: 4
+  name: scheduled_tasks
+  slug: scheduled-tasks
+  display_name_singular: Scheduled Task
+  display_name_plural: Scheduled Tasks
+  icon: voyager-alarm-clock
+  model_name: App\Models\ScheduledTask
+  details: |
+    {
+      "order_column": null,
+      "order_display_column": null,
+      "order_direction": "asc",
+      "default_search_key": null,
+      "scope": null
+    }
+data_rows:
+  - id: 22
+    field: id
+    type: number
+    display_name: ID
+    required: 1
+    browse: 1
+    read: 0
+    edit: 0
+    add: 0
+    delete: 0
+    details: |
+      {}
+  - id: 23
+    field: schedule
+    type: text
+    display_name: Schedule
+    required: 1
+    browse: 1
+    read: 1
+    edit: 1
+    add: 1
+    delete: 1
+    details: |
+      {
+        "placeholder": "* * * * *",
+        "validation": {
+          "rule": "required|cron",
+          "messages": {
+            "required": "スケジュールは必須です",
+            "cron": "スケジュールCron式が無効です"
+          }
+        }
+      }
+  - id: 24
+    field: command
+    type: text_area
+    display_name: Command
+    required: 1
+    browse: 1
+    read: 1
+    edit: 1
+    add: 1
+    delete: 1
+    details: |
+      {
+        "validation": {
+          "rule": "required",
+          "message": {
+            "required": "コマンドは必須です"
+          }
+        }
+      }
+  - id: 25
+    field: memo
+    type: text_area
+    display_name: Memo
+    required: 0
+    browse: 1
+    read: 1
+    edit: 1
+    add: 1
+    delete: 1
+    details: |
+      {}
+  - id: 26
+    field: executed_log
+    type: text area
+    display_name: Executed Log
+    required: 0
+    browse: 0
+    read: 1
+    edit: 0
+    add: 0
+    delete: 0
+    details: |
+      {}
+  - id: 27
+    field: executed_at
+    type: timestamp
+    display_name: 実行日時
+    required: 0
+    browse: 1
+    read: 1
+    edit: 0
+    add: 0
+    delete: 0
+    details: |
+      {}
+  - id: 28
+    field: created_at
+    type: timestamp
+    display_name: 作成日時
+    required: 0
+    browse: 1
+    read: 1
+    edit: 0
+    add: 0
+    delete: 0
+    details: |
+      {}
+  - id: 29
+    field: updated_at
+    type: timestamp
+    display_name: 更新日時
+    required: 0
+    browse: 0
+    read: 0
+    edit: 0
+    add: 0
+    delete: 0
+    details: |
+      {}
