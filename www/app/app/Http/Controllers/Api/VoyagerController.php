@@ -20,15 +20,23 @@ class VoyagerController extends Controller
         if (empty($command = $request->get('command'))) {
             return response()->json(['response' => '`command` must be required'], 400);
         }
-        // 作業ディレクトリを artisan のある場所に変更してから exec
-        $cwd = getcwd();
-        if (!chdir(base_path())) {
-            return response()->json(['response' => 'failed to change working directory'], 500);
+        // proc_open で OS コマンド実行
+        $descriptorspec = [
+            ['pipe', 'r'], // stdin
+            ['pipe', 'w'], // stdout
+            ['pipe', 'w'], // stderr
+        ];
+        if (false === ($process = proc_open($command, $descriptorspec, $pipes, base_path()))) {
+            return response()->json(['response' => 'command failed to execute'], 500);
         }
-        $stdout = [];
-        $response = exec($command, $stdout);
-        // 作業ディレクトリを元に戻す
-        chdir($cwd);
-        return response()->json(compact('response', 'stdout'));
+        // stdout, stderr 取得
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        // デッドロックを避けるため、proc_close を呼ぶ前にすべてのパイプを閉じる
+        foreach ($pipes as $pipe) {
+            fclose($pipe);
+        }
+        proc_close($process);
+        return response()->json(compact('stdout', 'stderr'));
     }
 }

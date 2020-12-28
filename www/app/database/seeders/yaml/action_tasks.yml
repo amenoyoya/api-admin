@@ -1,11 +1,11 @@
 data_type:
-  id: 5
-  name: scheduled_tasks
-  slug: scheduled-tasks
-  display_name_singular: Scheduled Task
-  display_name_plural: Scheduled Tasks
-  icon: voyager-alarm-clock
-  model_name: App\Models\ScheduledTask
+  id: 4
+  name: action_tasks
+  slug: action-tasks
+  display_name_singular: Action Task
+  display_name_plural: Action Tasks
+  icon: voyager-controller
+  model_name: App\Models\ActionTask
   details: |
     {
       "order_column": null,
@@ -15,7 +15,7 @@ data_type:
       "scope": null
     }
 data_rows:
-  - id: 28
+  - id: 22
     field: id
     type: number
     display_name: ID
@@ -27,10 +27,10 @@ data_rows:
     delete: 0
     details: |
       {}
-  - id: 29
-    field: schedule
+  - id: 23
+    field: name
     type: text
-    display_name: Cronスケジュール
+    display_name: タスク名
     required: 1
     browse: 1
     read: 1
@@ -39,16 +39,14 @@ data_rows:
     delete: 1
     details: |
       {
-        "placeholder": "* * * * *",
         "validation": {
-          "rule": "required|cron",
+          "rule": "required",
           "messages": {
-            "required": "スケジュールは必須です",
-            "cron": "スケジュールCron式が無効です"
+            "required": "タスク名は必須です",
           }
         }
       }
-  - id: 30
+  - id: 24
     field: command
     type: text_area
     display_name: コマンド
@@ -67,7 +65,7 @@ data_rows:
           }
         }
       }
-  - id: 31
+  - id: 25
     field: memo
     type: text_area
     display_name: Memo
@@ -79,7 +77,7 @@ data_rows:
     delete: 1
     details: |
       {}
-  - id: 32
+  - id: 26
     field: created_at
     type: timestamp
     display_name: 作成日時
@@ -91,7 +89,7 @@ data_rows:
     delete: 0
     details: |
       {}
-  - id: 33
+  - id: 27
     field: updated_at
     type: timestamp
     display_name: 更新日時

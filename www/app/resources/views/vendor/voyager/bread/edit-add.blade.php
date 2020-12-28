@@ -235,9 +235,9 @@
                             command: $('.form-control[name="command"]').val(),
                         },
                         success: function(data) {
-                            var stdout = data['stdout'].join('\n');
                             $('#executed-log').html(
-                                '<div class="panel panel-bordered"><div class="panel-body"><pre><code>' + stdout + '</code></pre></div></div>'
+                                '<div class="panel panel-bordered"><div class="panel-body"><h2>stdout</h2><pre><code>' + data['stdout'] + '</code></pre></div></div>' +
+                                '<div class="panel panel-bordered"><div class="panel-body"><h2>stderr</h2><pre><code>' + data['stderr'] + '</code></pre></div></div>'
                             );
                         },
                         error: function() {

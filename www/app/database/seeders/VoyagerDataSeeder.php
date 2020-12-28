@@ -14,6 +14,7 @@ class VoyagerDataSeeder extends Seeder
      */
     public function run()
     {
+        $this->seedVoyagerDataFromYaml('action_tasks');
         $this->seedVoyagerDataFromYaml('scheduled_tasks');
     }
 
