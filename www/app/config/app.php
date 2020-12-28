@@ -174,7 +174,8 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-
+        App\Providers\ValidatorServiceProvider::class,
+        App\Providers\SlackServiceProvider::class,
     ],
 
     /*
@@ -227,6 +228,8 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
 
+        // use \App\Facades\Slack as \Slack
+        'Slack' => App\Facades\Slack::class,
     ],
 
 ];
