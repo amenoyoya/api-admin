@@ -26,7 +26,7 @@ class VoyagerController extends Controller
             ['pipe', 'w'], // stdout
             ['pipe', 'w'], // stderr
         ];
-        if (false === ($process = proc_open($command, $descriptorspec, $pipes, base_path()))) {
+        if (false === ($process = proc_open($command, $descriptorspec, $pipes, base_path(), ['HOME' => env('HOME', '/var/www/')]))) {
             return response()->json(['response' => 'command failed to execute'], 500);
         }
         // stdout, stderr 取得
