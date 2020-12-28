@@ -80,30 +80,6 @@ data_rows:
     details: |
       {}
   - id: 26
-    field: executed_log
-    type: text area
-    display_name: Executed Log
-    required: 0
-    browse: 0
-    read: 1
-    edit: 0
-    add: 0
-    delete: 0
-    details: |
-      {}
-  - id: 27
-    field: executed_at
-    type: timestamp
-    display_name: 実行日時
-    required: 0
-    browse: 1
-    read: 1
-    edit: 0
-    add: 0
-    delete: 0
-    details: |
-      {}
-  - id: 28
     field: created_at
     type: timestamp
     display_name: 作成日時
@@ -115,7 +91,7 @@ data_rows:
     delete: 0
     details: |
       {}
-  - id: 29
+  - id: 27
     field: updated_at
     type: timestamp
     display_name: 更新日時

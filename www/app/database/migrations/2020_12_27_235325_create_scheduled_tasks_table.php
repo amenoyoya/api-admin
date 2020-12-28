@@ -18,8 +18,6 @@ class CreateScheduledTasksTable extends Migration
             $table->string('schedule', 64)->comment('cronスケジュール');
             $table->text('command')->comment('実行コマンド');
             $table->text('memo')->nullable()->comment('備考');
-            $table->text('executed_log')->nullable()->comment('実行ログ');
-            $table->datetime('executed_at')->nullable()->comment('実行日時');
             $table->timestamps();
         });
     }

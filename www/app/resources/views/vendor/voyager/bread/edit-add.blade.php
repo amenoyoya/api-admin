@@ -98,6 +98,14 @@
                         <div class="panel-footer">
                             @section('submit-buttons')
                                 <button type="submit" class="btn btn-primary save">{{ __('voyager::generic.save') }}</button>
+                                @if (\Schema::hasColumn($dataType->name, 'command'))
+                                    <?php
+                                        // command カラムを持つ table であれば API 実行用トークンを発行し「Run」ボタン表示
+                                        $apiToken = bin2hex(random_bytes(16));
+                                        \Session::put('voyager_api_token', $apiToken);
+                                    ?>
+                                    <button id="run-btn" class="btn btn-warning" onclick="return false"><i class="voyager-play"></i> Run</button>
+                                @endif
                             @stop
                             @yield('submit-buttons')
                         </div>
@@ -113,6 +121,9 @@
                     </form>
 
                 </div>
+
+                <!-- For executable data type: executed log -->
+                <div id="executed-log"></div>
             </div>
         </div>
     </div>
@@ -212,6 +223,31 @@
                 $('#confirm_delete_modal').modal('hide');
             });
             $('[data-toggle="tooltip"]').tooltip();
+
+            @if (isset($apiToken))
+                // Runボタン実行
+                $('#run-btn').on('click', function() {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/voyager/api/exec',
+                        data: {
+                            token: '{{ $apiToken }}',
+                            command: $('.form-control[name="command"]').val(),
+                        },
+                        success: function(data) {
+                            var stdout = data['stdout'].join('\n');
+                            $('#executed-log').html(
+                                '<div class="panel panel-bordered"><div class="panel-body"><pre><code>' + stdout + '</code></pre></div></div>'
+                            );
+                        },
+                        error: function() {
+                            $('#executed-log').html(
+                                '<div class="panel panel-bordered"><div class="panel-body"><p class="text-danger">API通信に失敗しました</p></div></div>'
+                            );
+                        }
+                    });
+                });
+            @endif
         });
     </script>
 @stop
