@@ -153,6 +153,7 @@
 @stop
 
 @section('javascript')
+    <script src="/assets/js/loadingoverlay-2.1.7.min.js"></script>
     <script>
         var params = {};
         var $file;
@@ -227,23 +228,53 @@
             @if (isset($apiToken))
                 // Runボタン実行
                 $('#run-btn').on('click', function() {
+                    var command = $('.form-control[name="command"]').val();
+
+                    if (command.length === 0) {
+                        $('#executed-log').html(
+                            '<div class="panel panel-bordered"><div class="panel-body"><p class="text-danger">実行するコマンドが指定されていません</p></div></div>'
+                        );
+                        return false;
+                    }
+                    // loading + job queueing
+                    $.LoadingOverlay('show');
                     $.ajax({
                         type: 'POST',
                         url: '/voyager/api/exec',
                         data: {
                             token: '{{ $apiToken }}',
-                            command: $('.form-control[name="command"]').val(),
+                            command: command,
                         },
                         success: function(data) {
-                            $('#executed-log').html(
-                                '<div class="panel panel-bordered"><div class="panel-body"><h2>stdout</h2><pre><code>' + data['stdout'] + '</code></pre></div></div>' +
-                                '<div class="panel panel-bordered"><div class="panel-body"><h2>stderr</h2><pre><code>' + data['stderr'] + '</code></pre></div></div>'
-                            );
+                            // 1秒毎に JobStatus を fetch する
+                            var intervalId = setInterval(function() {
+                                $.ajax({
+                                    url: '/api/job_status?job_status_id=' + data['job_status_id'],
+                                    success: function(data) {
+                                        if (data['status'] !== 'queueing' && data['status'] !== 'queued') {
+                                            clearInterval(intervalId);
+                                            $('#executed-log').html(
+                                                '<div class="panel panel-bordered"><div class="panel-body"><h2>stdout</h2><pre><code>' + data['stdout'] + '</code></pre></div></div>' +
+                                                '<div class="panel panel-bordered"><div class="panel-body"><h2>stderr</h2><pre><code>' + data['stderr'] + '</code></pre></div></div>'
+                                            );
+                                            $.LoadingOverlay('hide');
+                                        }
+                                    },
+                                    error: function() {
+                                        clearInterval(intervalId);
+                                        $('#executed-log').html(
+                                            '<div class="panel panel-bordered"><div class="panel-body"><p class="text-danger">JobStatusの取得に失敗しました</p></div></div>'
+                                        );
+                                        $.LoadingOverlay('hide');
+                                    }
+                                });
+                            }, 1000);
                         },
                         error: function() {
                             $('#executed-log').html(
                                 '<div class="panel panel-bordered"><div class="panel-body"><p class="text-danger">API通信に失敗しました</p></div></div>'
                             );
+                            $.LoadingOverlay('hide');
                         }
                     });
                 });

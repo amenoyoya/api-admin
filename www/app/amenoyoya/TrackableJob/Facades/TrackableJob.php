@@ -47,6 +47,19 @@ class TrackableJob
     }
 
     /**
+     * JobStatusId に紐付けられたデータを変更
+     *
+     * @param string $jobStatusId
+     * @param object $jobStatusData {status, name, id, created_at, updated_at}
+     */
+    public static function setJobStatus($jobStatusId, $jobStatusData)
+    {
+        Redis::set("trackable_queue_job.$jobStatusId", json_encode($jobStatusData));
+        // TRACKABLE_JOB_LIFETIME 分間データを維持する
+        Redis::expire("trackable_queue_job.$jobStatusId", self::getLifeTime() * 60);
+    }
+
+    /**
      * Job 状態管理用 ID を新規発行し、Redis データベースに状態保存
      *
      * @return string $jobStatusId
@@ -54,13 +67,11 @@ class TrackableJob
     public static function initializeJobStatus()
     {
         $jobStatusId = bin2hex(random_bytes(8));
-        Redis::set("trackable_queue_job.$jobStatusId", json_encode([
+        self::setJobStatus($jobStatusId, [
             'status' => 'queueing',
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
-        ]));
-        // TRACKABLE_JOB_LIFETIME 分間データを維持する
-        Redis::expire("trackable_queue_job.$jobStatusId", self::getLifeTime() * 60);
+        ]);
         return $jobStatusId;
     }
 
@@ -88,7 +99,7 @@ class TrackableJob
         $data->id = @$payload['id'];
         $data->status = $status;
         $data->updated_at = date('Y-m-d H:i:s');
-        Redis::set("trackable_queue_job.$jobStatusId", json_encode($data));
+        self::setJobStatus($jobStatusId, $data);
         return $data;
     }
 }

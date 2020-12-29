@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Amenoyoya\TrackableJob\Facades\TrackableJob;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +17,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+/**
+ * GET /api/job_status?job_status_id={job_status_id}
+ * @return array {'status' => string, 'name' => string, 'id' => string, 'created_at' => string, 'updated_at' => string, ...}
+ */
+Route::get('/job_status', function (Request $request) {
+    if (null === ($jobStatus = TrackableJob::getJobStatus($request->get('job_status_id')))) {
+        return response()->json(['response' => 'not found'], 404);
+    }
+    return response()->json($jobStatus);
 });

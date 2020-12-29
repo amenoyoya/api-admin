@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use Exception;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Jobs\ProcessExecutionJob;
+use Amenoyoya\TrackableJob\Facades\TrackableJob;
 
 class VoyagerController extends Controller
 {
@@ -20,23 +22,8 @@ class VoyagerController extends Controller
         if (empty($command = $request->get('command'))) {
             return response()->json(['response' => '`command` must be required'], 400);
         }
-        // proc_open で OS コマンド実行
-        $descriptorspec = [
-            ['pipe', 'r'], // stdin
-            ['pipe', 'w'], // stdout
-            ['pipe', 'w'], // stderr
-        ];
-        if (false === ($process = proc_open($command, $descriptorspec, $pipes, base_path(), ['HOME' => env('HOME', '/var/www/')]))) {
-            return response()->json(['response' => 'command failed to execute'], 500);
-        }
-        // stdout, stderr 取得
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        // デッドロックを避けるため、proc_close を呼ぶ前にすべてのパイプを閉じる
-        foreach ($pipes as $pipe) {
-            fclose($pipe);
-        }
-        proc_close($process);
-        return response()->json(compact('stdout', 'stderr'));
+        // ProcessExecutionJob を Queue に追加して JobStatusId を返す
+        $job_status_id = TrackableJob::dispatch(new ProcessExecutionJob($command));
+        return response()->json(compact('job_status_id'));
     }
 }
