@@ -177,6 +177,8 @@ return [
         
         App\Providers\ValidatorServiceProvider::class,
         App\Providers\SlackServiceProvider::class,
+
+        Amenoyoya\TrackableJob\Providers\TrackableJobServiceProvider::class,
     ],
 
     /*

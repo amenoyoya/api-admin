@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Redis;
+use Amenoyoya\TrackableJob\Facades\TrackableJob;
 
 class jobCommand extends Command
 {
@@ -38,6 +38,6 @@ class jobCommand extends Command
      */
     public function handle()
     {
-        dump(json_decode(Redis::get("trackable_queue_job.{$this->argument('id')}")));
+        dump(TrackableJob::getJobStatus($this->argument('id')));
     }
 }
