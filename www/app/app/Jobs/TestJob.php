@@ -8,11 +8,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Imtigger\LaravelJobStatus\Trackable;
 
 class TestJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    protected $jobStatusId;
 
     /**
      * Create a new job instance.
@@ -21,7 +22,12 @@ class TestJob implements ShouldQueue
      */
     public function __construct()
     {
-        $this->prepareStatus();
+        $this->jobStatusId = bin2hex(random_bytes(8));
+        \Illuminate\Support\Facades\Redis::set('trackable_queue_job.' . $this->jobStatusId, json_encode([
+            'status' => 'queueing',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]));
     }
 
     /**
@@ -31,6 +37,12 @@ class TestJob implements ShouldQueue
      */
     public function handle()
     {
+        sleep(60); // 非同期実行を明確化するために1分待機させる
         \Log::info('キュー実行完了');
+    }
+
+    public function getJobStatusId()
+    {
+        return $this->jobStatusId;
     }
 }

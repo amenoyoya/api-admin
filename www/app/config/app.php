@@ -174,9 +174,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-
-        Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider::class,
-
+        
         App\Providers\ValidatorServiceProvider::class,
         App\Providers\SlackServiceProvider::class,
     ],

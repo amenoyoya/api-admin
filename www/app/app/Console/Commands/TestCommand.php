@@ -41,7 +41,7 @@ class TestCommand extends Command
         \Log::info('コマンド実行開始');
 
         // 非同期実行を明確化するために1分遅延させる
-        $job = (new TestJob)->delay(now()->addMinutes(1));
+        $job = new TestJob();
         dispatch($job);
         dump($job->getJobStatusId());
 

@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Redis;
-use Imtigger\LaravelJobStatus\JobStatus;
 
 class jobCommand extends Command
 {
@@ -39,6 +38,6 @@ class jobCommand extends Command
      */
     public function handle()
     {
-        dump(JobStatus::find($this->argument('id'))->status);
+        dump(json_decode(Redis::get("trackable_queue_job.{$this->argument('id')}")));
     }
 }
