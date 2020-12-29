@@ -36,6 +36,9 @@ $ ./x init
 |     |
 |     |_ Dockerfile # web service container build setting file
 |
+|_ nodejs/ # mount => /nodejs/
+|  |_ *.js # service://web: $ nodejs <filename> => $ cd /nodejs/ && node <filename>.js
+|
 |_ www/ # mount => service://web:/var/www/ (~www-data)
 |  |_ (app/) # プロジェクトディレクトリ (lamp スクリプトでセットアップする)
 |  |   |_ public/ # DocumentRoot

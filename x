@@ -12,14 +12,9 @@ case "$1" in
     mkdir -p ./docker/db/initdb.d/
     mkdir -p ./docker/web/conf/
     mkdir -p ./www/app/public/
-    tee ./docker/certs/.gitignore << \EOS
-/*
-!/.gitignore
-EOS
-    tee ./docker/db/dump/.gitignore << \EOS
-/*
-!/.gitignore
-EOS
+    mkdir -p ./nodejs/
+    echo '/*\n!/.gitignore' > ./docker/certs/.gitignore
+    echo '/*\n!/.gitignore' > ./docker/db/dump/.gitignore
     touch ./docker/db/initdb.d/.gitkeep
     tee ./docker/db/my.cnf << \EOS
 [mysqld]
@@ -111,6 +106,9 @@ RUN apt-get update && \
     npm i -g yarn && \
     : 'Puppeteer (Google Chrome) 用ライブラリインストール' && \
     apt-get install -y libgtk-3-dev libxss1 libnss3-dev libasound2 x11-apps x11-utils x11-xserver-utils fonts-ipafont libatk-bridge2.0-0 && \
+    : 'nodejs スクリプト実行 alias コマンド実装' && \
+    echo '#!/bin/bash\ncd /nodejs/\nnode "$1.js" ${@:2:($#-1)}' > /usr/local/bin/nodejs && \
+    chmod +x /usr/local/bin/nodejs && \
     : 'www-data ユーザで sudo 実行可能に' && \
     apt-get install -y sudo && \
     echo 'www-data ALL=NOPASSWD: ALL' >> '/etc/sudoers' && \
@@ -187,9 +185,8 @@ EOS
     if [ ! -e './www/app/public/index.php' ]; then
         echo '<?php phpinfo() ?>' > ./www/app/public/index.php
     fi
-    tee ./.gitignore << \EOS
-node_modules/
-EOS
+    echo '{}' > ./nodejs/package.json
+    echo 'node_modules/' > ./.gitignore
     tee ./.env << \EOS
 WEB_PORT=8080
 DB_PORT=8033
@@ -245,6 +242,8 @@ services:
       # 設定ファイル
       - ./docker/web/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./docker/web/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
+      # nodejs tools ディレクトリ
+      - ./nodejs/:/nodejs/
     environment:
       # USER_ID: www-data のユーザIDを docker 実行ユーザIDに合わせたい場合に利用 (export USER_ID=$UID)
       ## ユーザIDを合わせないと ./www/ (docker://web:/var/www/) 内のファイル編集が出来なくなる

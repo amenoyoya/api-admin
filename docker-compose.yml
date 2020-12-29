@@ -44,6 +44,8 @@ services:
       # 設定ファイル
       - ./docker/web/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./docker/web/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
+      # nodejs tools ディレクトリ
+      - ./nodejs/:/nodejs/
     environment:
       # USER_ID: www-data のユーザIDを docker 実行ユーザIDに合わせたい場合に利用 (export USER_ID=$UID)
       ## ユーザIDを合わせないと ./www/ (docker://web:/var/www/) 内のファイル編集が出来なくなる
