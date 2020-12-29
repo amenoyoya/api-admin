@@ -21,16 +21,13 @@ $ ./x init
 
 #### Structure
 ```bash
-./ # mount to => service://node:/work/
+./
 |_ docker/ # Dockerコンテナ設定
 |  |_ db/ # db service container
 |  |  |_ dump/ # mount => service://db:/var/dump/ (ダンプデータ等のやり取り用)
 |  |  |_ initdb.d/ # mount => service://db:/docker-entrypoint-initdb.d/
 |  |  |            # この中に配置した *.sql ファイルで初期データベースを構成可能
 |  |  |_ my.cnf # mount => service://db:/etc/mysql/conf.d/my.cnf:ro (MySQL設定ファイル)
-|  |
-|  |_ node/ # node service container
-|  |  |_ Dockerfile # node service container build setting file
 |  |
 |  |_ web/ # web service container
 |     |_ conf/
@@ -86,10 +83,6 @@ $ ./x init
     - **redis**: `redis:5`
         - Session Database & Cache Server
         - 接続: service://redis:6379
-    - **node**: `node:12-alpine`
-        - Node.js command line interface
-        - http://localhost => service://node
-            - hostサーバで実行される
     - **momgo**: `mongo:4.4`
         - MongoDB Datbase Server
         - tcp://localhost:27017 => service://mongo:27017
@@ -128,7 +121,6 @@ $ ./x up -d
 ## pma service container: https://pma.localhost => http://localhost:8057 => service://pma:80
 ## mailhog service container: https://mail.localhost => http://localhost:8025 => service://mailhog:80
 ## redis service container: service://redis:6379
-## node service container: on host server
 ## mongo service container: tcp://localhost:27017
 ## express service container: https://mongo.localhost => http://localhost:8081
 ## proxy service container: http://localhost:80, https://localhost:443
@@ -146,26 +138,6 @@ $ ./x install-voyager
 # => https://web.localhost/admin/
 ## - login email: admin@voyager.localhost
 ## - login password: admin
-
-# strapiプロジェクト作成
-## $ export USER_ID=$UID && docker-compose exec node yarn create strapi-app app
-$ ./x node yarn create strapi-app app
-
-# => strapi-app project settings: データベースに MongoDB を使うように設定する
-## Choose your installation type: Custom (manual settings)
-## Choose your default database client (Use arrow keys): mongo
-## Database name: app
-## Host: 127.0.0.1
-## +srv connection: false
-## Port (It will be ignored if you enable +srv): 27017
-## Username: root
-## Password: root
-## Authentication database (Maybe "admin" or blank): (blank)
-## Enable SSL connection (y/N): n
-
-# strapi開発サーバ起動
-## $ export USER_ID=$UID && docker-compose exec -w /work/app/ node yarn develop
-$ w=./app/ ./x node yarn develop
 ```
 
 ***

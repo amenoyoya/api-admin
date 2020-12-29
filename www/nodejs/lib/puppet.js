@@ -6,34 +6,7 @@
  * 参考: https://qiita.com/go_sagawa/items/4a368040fac6f7264e2c
  */
 const puppeteer = require('puppeteer');
-const devices = require('puppeteer/DeviceDescriptors');
 const {parseHtmlToJson} = require('./html2json');
-
-// 対応デバイス追加
-devices['Macintosh'] = {
-  'name': 'Macintosh',
-  'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3864.0 Safari/537.36',
-  'viewport': {
-    'width': 1024,
-    'height': 820,
-    'deviceScaleFactor': 1,
-    'isMobile': false,
-    'hasTouch': false,
-    'isLandscape': false
-  }
-};
-devices['Windows'] = {
-  'name': 'Windows',
-  'userAgent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3864.0',
-  'viewport': {
-    'width': 1024,
-    'height': 820,
-    'deviceScaleFactor': 1,
-    'isMobile': false,
-    'hasTouch': false,
-    'isLandscape': false
-  }
-};
 
 // 一つのブラウザをグローバルで利用する
 let browser = null;
@@ -141,27 +114,6 @@ const getNewPage = async () => {
     page = await getPage();
   }
   return page;
-};
-
-/**
- * デバイスエミュレーション変更
- * @param {Page} page puppeteer.Page
- * @param {string} deviceName デバイス名（puppeteer/DeviceDescriptors, 'Windows', 'Macintosh'）
- * @return {boolean} 
- */
-const emulate = async (page, deviceName) => {
-  try {
-    const device = devices[deviceName];
-    if (device === undefined) {
-      puppeteerError = `Emulation error: Unknown device "${deviceName}"`;
-      return false;
-    }
-    await page.emulate(device);
-    return true;
-  } catch (err) {
-    puppeteerError = err.message;
-    return false;
-  }
 };
 
 /**
@@ -337,7 +289,6 @@ module.exports = {
     const pages = await getPages();
     return pages !== null && pages.length > 0? pages[0]: await getNewPage();
   },
-  emulate,
   goto,
   element,
   elements,
