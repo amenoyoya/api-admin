@@ -29,3 +29,10 @@ Route::group(['prefix' => 'admin'], function () {
 Route::prefix('voyager/api')->middleware('voyager_api')->group(function() {
     Route::any('/exec', 'App\\Http\\Controllers\\Api\\VoyagerController@exec');
 });
+
+/**
+ * 動作確認用ページ
+ */
+Route::get('/test', function () {
+    return view('test');
+});

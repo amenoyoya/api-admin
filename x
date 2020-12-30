@@ -90,7 +90,7 @@ ENV PATH $PATH:~/.composer/vendor/bin
 
 # 開発に必要なパッケージ等のインストール
 RUN apt-get update && \
-    apt-get install -y wget curl git libicu-dev mailutils unzip vim \
+    apt-get install -y wget curl git jq libicu-dev mailutils unzip vim \
         libfreetype6-dev libjpeg62-turbo-dev libpng-dev libxml2-dev && \
     docker-php-ext-install mbstring intl gd xml mysqli pdo pdo_mysql && \
     : 'install php-pecl-redis' && \

@@ -143,32 +143,34 @@ const goto = async (page, url, basicUserName = undefined, basicPassword = undefi
  * ページ内の指定要素を取得
  * @param {Page} page puppeteer.Page
  * @param {string} selector セレクタ
- * @param {string} toJson 再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定
+ * @param {string|array} option
+ *  - 再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定
+ *  - 取得したい要素を指定したい場合 ['text', 'innerHTML', 'outerHTML', 'attributes'] から選択して指定
  * @return {*}
- *   toJson = false: {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
- *   toJson = string:  {<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}
+ *  - option is array: {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
+ *  - option is string:  {<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}
  */
-const element = async (page, selector, toJson = '') => {
+const element = async (page, selector, option = ['text', 'attributes']) => {
   try {
-    if (toJson !== '') {
+    if (typeof option === 'string') {
       // JSON化
       const element = await page.$(selector);
       const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
-      return parseHtmlToJson(html, toJson);
+      return parseHtmlToJson(html, option);
     }
-    return await page.$eval(selector, el => {
+    return await page.$eval(selector, (el, option) => {
       // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
       const attributes = {};
       for (const attr of el.attributes) {
         attributes[attr.name] = attr.value;
       }
       return {
-        text: el.innerText,
-        innerHTML: el.innerHTML,
-        outerHTML: el.outerHTML,
-        attributes: attributes,
-      }
-    });
+        text: option.includes('text')? el.innerText: undefined,
+        innerHTML: option.includes('innerHTML')? el.innerHTML: undefined,
+        outerHTML: option.includes('outerHTML')? el.outerHTML: undefined,
+        attributes: option.includes('attributes')? attributes: undefined,
+      };
+    }, option);
   } catch (err) {
     puppeteerError = err.message;
     return null;
@@ -179,24 +181,26 @@ const element = async (page, selector, toJson = '') => {
  * ページ内の指定要素のリスト取得
  * @param {Page} page puppeteer.Page
  * @param {string} selector セレクタ
- * @param {string} toJson 再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定
+ * @param {string|array} option
+ *  - 再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定
+ *  - 取得したい要素を指定したい場合 ['text', 'innerHTML', 'outerHTML', 'attributes'] から選択して指定
  * @return {array}
- *   toJson = false: [{text: string, innerHTML: string, outerHTML: string, attributes: object}]
- *   toJson = true:  [{<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}]
+ *  - option is array: [{text: string, innerHTML: string, outerHTML: string, attributes: object}]
+ *  - option is string:  [{<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}]
  */
-const elements = async (page, selector, toJson = '') => {
+const elements = async (page, selector, option = ['text', 'attributes']) => {
   try {
-    if (toJson !== '') {
+    if (typeof option === 'string') {
       // JSON化
       const elements = await page.$$(selector);
       const result = [];
       for (const element of elements) {
         const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
-        result.push(parseHtmlToJson(html, toJson));
+        result.push(parseHtmlToJson(html, option));
       }
       return result;
     }
-    return await page.$$eval(selector, elements => {
+    return await page.$$eval(selector, (elements, option) => {
       const result = [];
       for (const el of elements) {
         // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
@@ -205,14 +209,14 @@ const elements = async (page, selector, toJson = '') => {
           attributes[attr.name] = attr.value;
         }
         result.push({
-          text: el.innerText,
-          innerHTML: el.innerHTML,
-          outerHTML: el.outerHTML,
-          attributes: attributes,
+          text: option.includes('text')? el.innerText: undefined,
+          innerHTML: option.includes('innerHTML')? el.innerHTML: undefined,
+          outerHTML: option.includes('outerHTML')? el.outerHTML: undefined,
+          attributes: option.includes('attributes')? attributes: undefined,
         });
       }
       return result;
-    });
+    }, option);
   } catch (err) {
     puppeteerError = err.message;
     return [];
