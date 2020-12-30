@@ -583,13 +583,13 @@ PROMPT
     ;;
 "web")
     if [ "$w" != "" ]; then
-        docker-compose exec -w "$w" web "${@:2:($#-1)}"
+        docker-compose exec -Tw "$w" web "${@:2:($#-1)}"
     else
-        docker-compose exec web "${@:2:($#-1)}"
+        docker-compose exec -T web "${@:2:($#-1)}"
     fi
     ;;
 "node")
-    docker-compose exec -w "${w:-/work/nodejs/}" node "${@:2:($#-1)}"
+    docker-compose exec -Tw "${w:-/work/nodejs/}" node "${@:2:($#-1)}"
     ;;
 *)
     docker-compose $*
