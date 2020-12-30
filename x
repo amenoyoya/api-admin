@@ -101,14 +101,17 @@ RUN apt-get update && \
     : 'install msmtp (sendmail 互換の送信専用 MTA; ssmtp の後継)' && \
     : 'msmtp-mta も入れておくとデフォルトの MTA を sendmail から置き換えてくれるため便利' && \
     apt-get install -y msmtp msmtp-mta && \
-    : 'install nodejs 12.x' && \
-    curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt-get install -y nodejs && \
-    npm i -g yarn && \
-    : 'Puppeteer (Google Chrome) 用ライブラリインストール' && \
-    apt-get install -y libgtk-3-dev libxss1 libnss3-dev libasound2 x11-apps x11-utils x11-xserver-utils fonts-ipafont libatk-bridge2.0-0 && \
-    : 'nodejs スクリプト実行 alias コマンド実装' && \
-    echo '#!/bin/bash\ncd /nodejs/\nnode "$1.js" "${@:2:($#-1)}"' > /usr/local/bin/nodejs && \
+    : 'install docker client' && \
+    apt-get install -y apt-transport-https ca-certificates curl gnupg2 software-properties-common && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" && \
+    apt-get update && apt-get install -y docker-ce && \
+    gpasswd -a www-data docker && \
+    : 'docker exec を service 名で実行できるようにするスクリプトを追加' && \
+    echo '#!/bin/bash\ndocker exec -i $opt `docker ps --format {{.Names}} | grep $1` "${@:2:($#-1)}"' | tee /usr/local/bin/docker-exec && \
+    chmod +x /usr/local/bin/docker-exec && \
+    : 'nodeコンテナで nodejs を実行するコマンド alias を追加' && \
+    echo '#!/bin/bash\ndocker exec -iw "${w:-/work/nodejs/}" `docker ps --format {{.Names}} | grep node` "$1.js" "${@:2:($#-1)}"' | tee /usr/local/bin/nodejs && \
     chmod +x /usr/local/bin/nodejs && \
     : 'www-data ユーザで sudo 実行可能に' && \
     apt-get install -y sudo && \
@@ -275,8 +278,9 @@ services:
       # 設定ファイル
       - ./docker/web/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./docker/web/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
-      # nodejs tools ディレクトリ
-      - ./nodejs/:/nodejs/
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work/
     environment:
       # USER_ID: www-data のユーザIDを docker 実行ユーザIDに合わせたい場合に利用 (export USER_ID=$UID)
       ## ユーザIDを合わせないと ./www/ (docker://web:/var/www/) 内のファイル編集が出来なくなる
@@ -319,6 +323,9 @@ services:
       - ./docker/db/dump/:/var/dump/
       # 初回投入データ: ./docker/db/initdb.d/
       - ./docker/db/initdb.d/:/docker-entrypoint-initdb.d/
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work/
     working_dir: /var/dump/
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -340,6 +347,9 @@ services:
       - "${PMA_PORT:-8057}:80"
     volumes:
       - /sessions
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work/
     environment:
       PMA_ARBITRARY: 1
       PMA_HOST: db
@@ -363,6 +373,10 @@ services:
       # http://localhost:${MAILHOG_PORT} => service://mailhog:8025
       - "${MAILHOG_PORT:-8025}:8025"
       # - "1025" # SMTP Port: ホスト側ポートはランダムに選出
+    volumes:
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work/
     environment:
       # VirtualHost
       VIRTUAL_HOST: mail.localhost
@@ -381,7 +395,7 @@ services:
       # Docker socket 共有
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/work/
-
+  
   # node service container: node:12-alpine
   # $ docker-compose exec node $command ...
   node:
@@ -397,11 +411,12 @@ services:
     # enable terminal
     tty: true
     volumes:
-      # ./ => service:node:/work/
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./:/work/
     environment:
       TZ: Asia/Tokyo
-  
+
   # mongo service container: mongo db v4.4
   mongo:
     image: mongo:4.4
@@ -417,6 +432,9 @@ services:
     volumes:
       # database data persistence
       - mongo-data:/data/db/
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work/
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
@@ -433,6 +451,10 @@ services:
     ports:
       # http://localhost:${MONGO_EXPRESS_PORT} => service://express:8081
       - ${MONGO_EXPRESS_PORT:-8081}:8081
+    volumes:
+      # Docker socket 共有
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/work/
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: root
@@ -565,6 +587,9 @@ PROMPT
     else
         docker-compose exec web "${@:2:($#-1)}"
     fi
+    ;;
+"node")
+    docker-compose exec -w "${w:-/work/nodejs/}" node "${@:2:($#-1)}"
     ;;
 *)
     docker-compose $*

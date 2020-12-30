@@ -32,6 +32,7 @@ const main = async () => {
    */
   MongoClient.connect(url, connectOption, async (err, client) => {
     if (err !== null) {
+      client.close()
       return false
     }
     try {
@@ -42,11 +43,13 @@ const main = async () => {
         if (Array.isArray(config.insert)) {
           const result = await collection.insertMany(config.insert)
           if (result.insertedCount !== config.insert.length) {
+            client.close()
             return false
           }
         } else {
           const result = await collection.insertOne(config.insert)
           if (result.insertedCount !== 1) {
+            client.close()
             return false
           }
         }
