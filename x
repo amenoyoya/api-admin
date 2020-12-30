@@ -107,7 +107,7 @@ RUN apt-get update && \
     : 'Puppeteer (Google Chrome) 用ライブラリインストール' && \
     apt-get install -y libgtk-3-dev libxss1 libnss3-dev libasound2 x11-apps x11-utils x11-xserver-utils fonts-ipafont libatk-bridge2.0-0 && \
     : 'nodejs スクリプト実行 alias コマンド実装' && \
-    echo '#!/bin/bash\ncd /nodejs/\nnode "$1.js" ${@:2:($#-1)}' > /usr/local/bin/nodejs && \
+    echo '#!/bin/bash\ncd /nodejs/\nnode "$1.js" "${@:2:($#-1)}"' > /usr/local/bin/nodejs && \
     chmod +x /usr/local/bin/nodejs && \
     : 'www-data ユーザで sudo 実行可能に' && \
     apt-get install -y sudo && \
@@ -508,9 +508,9 @@ PROMPT
     ;;
 "web")
     if [ "$w" != "" ]; then
-        docker-compose exec -w "/work/$w" web ${@:2:($#-1)}
+        docker-compose exec -w "$w" web "${@:2:($#-1)}"
     else
-        docker-compose exec web ${@:2:($#-1)}
+        docker-compose exec web "${@:2:($#-1)}"
     fi
     ;;
 *)

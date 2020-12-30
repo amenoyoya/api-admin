@@ -1,6 +1,5 @@
 const readstream = require('./lib/readstream')
 const { MongoClient } = require('mongodb')
-const assert = require('assert')
 const omit = require('./lib/omit')
 
 require('dotenv').config()
