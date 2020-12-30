@@ -274,6 +274,37 @@ const click = async (page, selector) => {
 };
 
 /**
+ * XPathで要素取得
+ * @param {Page} page
+ * @param {string} xpath 
+ */
+const xpath = async (page, xpath, option = ['text', 'attributes']) => {
+  try {
+    const result = [];
+    for (const element of await page.$x(xpath)) {
+      result.push(
+        await page.evaluate((element, option) => {
+          const attributes = {};
+          for (const attr of element.attributes) {
+            attributes[attr.name] = attr.value;
+          }
+          return {
+            text: option.includes('text')? element.innerText: undefined,
+            innerHTML: option.includes('innerHTML')? element.innerHTML: undefined,
+            outerHTML: option.includes('outerHTML')? element.outerHTML: undefined,
+            attributes: option.includes('attributes')? attributes: undefined,
+          }
+        }, element, option)
+      );
+    }
+    return result;
+  } catch (err) {
+    puppeteerError = err.message;
+    return [];
+  }
+};
+
+/**
  * 現在のページのフルスクリーンのスクリーンショット撮影
  * @param {Page} page puppeteer.Page
  * @return {Buffer} image
@@ -296,6 +327,7 @@ module.exports = {
   goto,
   element,
   elements,
+  xpath,
   input,
   select,
   click,

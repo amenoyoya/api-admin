@@ -13,9 +13,16 @@ const getElements = async (page, conditions) => {
   if (Array.isArray(conditions)) {
     const result = []
     for (const condition of conditions) {
-      result.push(await puppet.elements(page, condition.selector, condition.option || ['text', 'attributes']))
+      if (condition.selector[0] === '/') {
+        result.push(await puppet.xpath(page, condition.selector, condition.option || ['text', 'attributes']))
+      } else {
+        result.push(await puppet.elements(page, condition.selector, condition.option || ['text', 'attributes']))
+      }
     }
     return result
+  }
+  if (conditions.selector[0] === '/') {
+    return await puppet.xpath(page, conditions.selector, conditions.option || ['text', 'attributes'])
   }
   return await puppet.elements(page, conditions.selector, conditions.option || ['text', 'attributes'])
 }
@@ -138,10 +145,10 @@ const execute = async (page, scenario) => {
     if (Array.isArray(scenario.select)) {
       result.select = []
       for (const condition of scenario.select) {
-        result.select.push(await selectText(page, condition))
+        result.select.push(await inputSelect(page, condition))
       }
     } else {
-      result.select = await selectText(page, scenario.select)
+      result.select = await inputSelect(page, scenario.select)
     }
   }
   // click 実行

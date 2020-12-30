@@ -231,6 +231,8 @@ services:
     # 所属ネットワーク
     networks:
       - appnet
+    # DNSサーバにGoogleDNS利用
+    dns: 8.8.8.8
     # ポートフォワーディング
     ports:
       # http://localhost:${WEB_PORT} => service://web:80
