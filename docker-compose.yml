@@ -152,6 +152,26 @@ services:
       # Docker socket 共有
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/work/
+  
+  # node service container: node:12-alpine
+  # $ docker-compose exec node $command ...
+  node:
+    build:
+      context: ./docker/node/
+      args:
+        # use current working user id
+        UID: $USER_ID
+    logging:
+      driver: json-file
+    # tcp://localhost:<port> => service://node:<port>
+    network_mode: host
+    # enable terminal
+    tty: true
+    volumes:
+      # ./ => service:node:/work/
+      - ./:/work/
+    environment:
+      TZ: Asia/Tokyo
 
   # mongo service container: mongo db v4.4
   mongo:
