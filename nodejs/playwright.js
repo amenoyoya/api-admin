@@ -31,42 +31,49 @@ const goto = async (page, url) => {
  * @return {object[]} 
  */
 const scrape = async (page, condition) => {
-  const result = []
-  for (const el of await page.$$(condition.selector)) {
-    // HTML要素へのアクション実行
-    const action_result = {}
-    if (Array.isArray(condition.actions)) {
-      for (const action of condition.actions) {
-        try {
-          if (typeof el[action.action] === 'function') {
-            action.args? await el[action.action](...action.args): await el[action.action]()
-            action_result[action.action] = {result: true}
-          } else {
-            action_result[action.action] = {result: false}
-          }
-        } catch (err) {
-          action_result[action.action] = {
-            result: false,
-            error: err.toString(),
+  try {
+    const result = []
+    for (const el of await page.$$(condition.selector)) {
+      // HTML要素へのアクション実行
+      const action_result = {}
+      if (Array.isArray(condition.actions)) {
+        for (const action of condition.actions) {
+          try {
+            if (typeof el[action.action] === 'function') {
+              action.args? await el[action.action](...action.args): await el[action.action]()
+              action_result[action.action] = {result: true}
+            } else {
+              action_result[action.action] = {result: false}
+            }
+          } catch (err) {
+            action_result[action.action] = {
+              result: false,
+              error: err.toString(),
+            }
           }
         }
       }
+      // HTML要素属性の取得
+      const attr_result = Array.isArray(condition.attributes)? await el.evaluate((el, attributes) => {
+        const result = {}
+        for (const attr of attributes) {
+          result[attr] = el[attr]
+        }
+        return result
+      }, condition.attributes): {}
+      // 結果の push
+      result.push({
+        '$actions': Object.keys(action_result).length > 0? action_result: undefined,
+        ...attr_result,
+      })
     }
-    // HTML要素属性の取得
-    const attr_result = await el.evaluate((el, attributes) => {
-      const result = {}
-      for (const attr of attributes) {
-        result[attr] = el[attr]
-      }
-      return result
-    }, condition.attributes)
-    // 結果の push
-    result.push({
-      '$actions': Object.keys(action_result).length > 0? action_result: undefined,
-      ...attr_result,
-    })
+    return result
+  } catch (err) {
+    return {
+      result: false,
+      error: err.toString(),
+    }
   }
-  return result
 }
 
 /**
@@ -91,6 +98,28 @@ const screenshot = async (page, filename) => {
 }
 
 /**
+ * 一定時間 or セレクタ出現まで待機
+ * @param {Page} page 
+ * @param {string|number} waiting 
+ * @return {*}
+ */
+const wait = async (page, waiting) => {
+  try {
+    if (typeof waiting === 'number') await page.waitForTimeout(waiting)
+    else if (typeof waiting === 'string') await page.waitForSelector(waiting)
+    else await page.waitForNavigation()
+    return {
+      result: true
+    }
+  } catch (err) {
+    return {
+      result: false,
+      error: err.toString(),
+    }
+  }
+}
+
+/**
  * Playwright 実行メイン
  * @param {Page} page
  * @param {object} scenario
@@ -101,6 +130,10 @@ const execute = async (page, scenario) => {
   // ページ読み込み
   if (scenario.goto) {
     result.goto = await goto(page, scenario.goto)
+  }
+  // 待機
+  if (scenario.wait) {
+    result.wait = await wait(page, scenario.wait)
   }
   // スクレイピング
   if (scenario.scrape) {

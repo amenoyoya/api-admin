@@ -177,7 +177,7 @@ RUN apt-get update && \
     echo '#!/bin/bash\ndocker exec -i $opt `docker ps --format {{.Names}} | grep $1` "${@:2:($#-1)}"' | tee /usr/local/bin/docker-exec && \
     chmod +x /usr/local/bin/docker-exec && \
     : 'nodeコンテナで nodejs を実行するコマンド alias を追加' && \
-    echo '#!/bin/bash\ndocker exec -iw "${w:-/work/nodejs/}" `docker ps --format {{.Names}} | grep node` "$1.js" "${@:2:($#-1)}"' | tee /usr/local/bin/nodejs && \
+    echo '#!/bin/bash\ndocker exec -iw "${w:-/work/nodejs/}" `docker ps --format {{.Names}} | grep node` node "$1.js" "${@:2:($#-1)}"' | tee /usr/local/bin/nodejs && \
     chmod +x /usr/local/bin/nodejs && \
     : 'www-data ユーザで sudo 実行可能に' && \
     apt-get install -y sudo && \
@@ -232,6 +232,7 @@ EOS
 /.*
 !/.gitignore
 !/.msmtprc
+supervisord.*
 EOS
     tee ./www/.msmtprc << \EOS
 # Set default values for all following accounts.
