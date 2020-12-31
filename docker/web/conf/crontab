@@ -1,0 +1,1 @@
+* * * * * (echo "$(date): laravel schedule:run"; cd /var/www/app && php artisan schedule:run) > /var/www/.laravel_schedule_run.log

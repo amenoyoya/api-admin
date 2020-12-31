@@ -13,8 +13,8 @@ fi
 chown www-data:www-data /var/www/.msmtprc
 chmod 600 /var/www/.msmtprc
 
-# Apache をフォアグランドで起動
-a2enmod rewrite
-a2enmod headers
-a2enmod ssl
-apachectl -D FOREGROUND
+# install crontab
+busybox crontab /var/spool/cron/crontabs/www-user
+
+# supervisor 起動
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

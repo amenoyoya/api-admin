@@ -13,6 +13,13 @@ RUN apt-get update && \
     pecl install redis-5.1.1 && docker-php-ext-enable redis && \
     : 'create log directory' && \
     mkdir -p /var/log/httpd/ && \
+    : 'enable apache2 modules' && \
+    a2enmod rewrite && \
+    a2enmod headers && \
+    a2enmod ssl && \
+    : 'install supervisor, busybox' && \
+    apt-get install -y supervisor busybox-static && \
+    mkdir -p /var/log/supervisor/ && \
     : 'install msmtp (sendmail 互換の送信専用 MTA; ssmtp の後継)' && \
     : 'msmtp-mta も入れておくとデフォルトの MTA を sendmail から置き換えてくれるため便利' && \
     apt-get install -y msmtp msmtp-mta && \

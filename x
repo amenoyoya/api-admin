@@ -23,6 +23,65 @@ character-set-server = 'utf8mb4'
 [client]
 default-character-set = 'utf8mb4'
 EOS
+    touch ./docker/web/conf/crontab
+    tee ./docker/web/conf/supervisord.conf << \EOS
+[supervisord]
+nodaemon=true
+
+[program:apache2]
+; 実行コマンド
+command=/usr/local/bin/apache2-foreground
+
+; プロセス名（numprocsが1以上の場合は%(process_num)sを使用して重複を避ける）
+process_name=%(program_name)s
+
+; 実行ユーザ
+user=root
+
+; 終了コード
+exitcodes=1
+
+; 起動時のカレントディレクトリ
+; directory = /home/dev-user/
+
+; 自動リスタート
+; true:常に再起動,false:常に再起動しない,unexpected:終了コードがexitcodesのあるもの以外なら再起動
+autorestart=false
+
+; この値より早く終了し場合に異常終了として扱う（超えて終了した場合は正常終了）
+; startsecs = 0
+
+; リスタートの試行回数
+; startretries=0
+
+; この値（秒）を超えた場合、SIGKILLを送信
+; stopwaitsecs = 3600
+
+; 子プロセスまでkillする
+; stopasgroup = false
+
+; SIGKILLをプロセスグループ全体に送信
+; killasgroup = true
+
+; logに関する設定
+; ローテートするログファイル容量
+logfile_maxbytes=50MB
+
+; ローテートで残す世代数
+logfile_backup=10
+
+; ログファイル
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s-error.log
+
+[program:crond]
+command=/bin/busybox crond -f
+process_name=%(program_name)s
+logfile_maxbytes=50MB
+logfile_backup=10
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s-error.log
+EOS
     tee ./docker/web/conf/000-default.conf << \EOS
 # Apacheバージョン非表示
 ServerTokens ProductOnly
@@ -98,6 +157,13 @@ RUN apt-get update && \
     pecl install redis-5.1.1 && docker-php-ext-enable redis && \
     : 'create log directory' && \
     mkdir -p /var/log/httpd/ && \
+    : 'enable apache2 modules' && \
+    a2enmod rewrite && \
+    a2enmod headers && \
+    a2enmod ssl && \
+    : 'install supervisor, busybox' && \
+    apt-get install -y supervisor busybox-static && \
+    mkdir -p /var/log/supervisor/ && \
     : 'install msmtp (sendmail 互換の送信専用 MTA; ssmtp の後継)' && \
     : 'msmtp-mta も入れておくとデフォルトの MTA を sendmail から置き換えてくれるため便利' && \
     apt-get install -y msmtp msmtp-mta && \
@@ -210,11 +276,11 @@ fi
 chown www-data:www-data /var/www/.msmtprc
 chmod 600 /var/www/.msmtprc
 
-# Apache をフォアグランドで起動
-a2enmod rewrite
-a2enmod headers
-a2enmod ssl
-apachectl -D FOREGROUND
+# install crontab
+busybox crontab /var/spool/cron/crontabs/www-user
+
+# supervisor 起動
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 EOS
     if [ ! -e './www/app/public/index.php' ]; then
         echo '<?php phpinfo() ?>' > ./www/app/public/index.php
@@ -278,6 +344,8 @@ services:
       # 設定ファイル
       - ./docker/web/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./docker/web/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
+      - ./docker/web/conf/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./docker/web/conf/crontab:/var/spool/cron/crontabs/www-user
       # Docker socket 共有
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/work/
@@ -562,6 +630,22 @@ class AppServiceProvider extends ServiceProvider
     }
 }
 EOS
+    # laravel cron と queue:work サービス登録
+    if [ "$(cat ./docker/web/conf/crontab | grep 'php artisan schedule:run')" = "" ]; then
+        echo '* * * * * (echo "$(date): laravel schedule:run"; cd /var/www/app && php artisan schedule:run) > /var/www/.laravel_schedule_run.log' >> ./docker/web/conf/crontab
+    fi
+    if [ "$(cat ./docker/web/conf/supervisord.conf | grep 'laravel_queue_work')" = "" ]; then
+        tee -a ./docker/web/conf/supervisord.conf << \EOS
+[program:laravel_queue_work]
+command=php artisan queue:work
+directory=/var/www/app/
+process_name=%(program_name)s
+logfile_maxbytes=50MB
+logfile_backup=10
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s-error.log
+EOS
+    fi
     ;;
 "install-voyager")
     docker-compose exec web composer require tcg/voyager

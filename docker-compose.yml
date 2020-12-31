@@ -46,6 +46,8 @@ services:
       # 設定ファイル
       - ./docker/web/conf/000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./docker/web/conf/php.ini:/usr/local/etc/php/conf.d/php.ini
+      - ./docker/web/conf/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+      - ./docker/web/conf/crontab:/var/spool/cron/crontabs/www-user
       # Docker socket 共有
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/work/
