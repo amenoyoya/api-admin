@@ -112,12 +112,12 @@
                             @elseif($row->type == 'checkbox')
                                 @if(property_exists($row->details, 'on') && property_exists($row->details, 'off'))
                                     @if($dataTypeContent->{$row->field})
-                                    <span class="label label-info">{{ $row->details->on }}</span>
+                                    <span class="label label-success">{{ $row->details->on }}</span>
                                     @else
-                                    <span class="label label-primary">{{ $row->details->off }}</span>
+                                    <span class="label label-warning">{{ $row->details->off }}</span>
                                     @endif
                                 @else
-                                {{ $dataTypeContent->{$row->field} }}
+                                    {{ $dataTypeContent->{$row->field} }}
                                 @endif
                             @elseif($row->type == 'color')
                                 <span class="badge badge-lg" style="background-color: {{ $dataTypeContent->{$row->field} }}">{{ $dataTypeContent->{$row->field} }}</span>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Facades;
+namespace Amenoyoya\SlackNotification\Facades;
 
 use Illuminate\Support\Facades\Facade;
 

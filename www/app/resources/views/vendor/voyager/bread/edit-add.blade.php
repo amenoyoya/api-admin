@@ -70,14 +70,20 @@
                                 <div class="form-group @if($row->type == 'hidden') hidden @endif col-md-{{ $display_options->width ?? 12 }} {{ $errors->has($row->field) ? 'has-error' : '' }}" @if(isset($display_options->id)){{ "id=$display_options->id" }}@endif>
                                     {{ $row->slugify }}
                                     <label class="control-label" for="name">{{ $row->getTranslatedAttribute('display_name') }}</label>
-                                    @if ($row->required)
+                                    @if ($row->required || @$row->details->required)
                                         <span class="text-danger">必須</span>
                                     @endif
                                     @include('voyager::multilingual.input-hidden-bread-edit-add')
                                     @if (isset($row->details->view))
                                         @include($row->details->view, ['row' => $row, 'dataType' => $dataType, 'dataTypeContent' => $dataTypeContent, 'content' => $dataTypeContent->{$row->field}, 'action' => ($edit ? 'edit' : 'add'), 'view' => ($edit ? 'edit' : 'add'), 'options' => $row->details])
                                     @elseif ($row->type == 'relationship')
-                                        @include('voyager::formfields.relationship', ['options' => $row->details])
+                                        @if ($row->required || @$row->details->required)
+                                            <div class="required_relationship">
+                                                @include('voyager::formfields.relationship', ['options' => $row->details])
+                                            </div>
+                                        @else
+                                            @include('voyager::formfields.relationship', ['options' => $row->details])
+                                        @endif
                                     @else
                                         {!! app('voyager')->formField($row, $dataType, $dataTypeContent) !!}
                                     @endif
@@ -224,6 +230,19 @@
                 $('#confirm_delete_modal').modal('hide');
             });
             $('[data-toggle="tooltip"]').tooltip();
+
+            // 保存前バリデーション
+            $('.form-edit-add').on('submit', function() {
+                var valid = true;
+                // 選択必須の relationship
+                $('.required_relationship').each(function (i, e) {
+                    if (!$(e).find('select').val()) {
+                        valid = false;
+                        $(e).append('<span class="help-block text-danger">選択してください</span>');
+                    }
+                });
+                return valid;
+            });
 
             @if (isset($apiToken))
                 // Runボタン実行

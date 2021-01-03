@@ -14,8 +14,14 @@ case "$1" in
     mkdir -p ./docker/node/
     mkdir -p ./www/app/public/
     mkdir -p ./nodejs/
-    echo '/*\n!/.gitignore' > ./docker/certs/.gitignore
-    echo '/*\n!/.gitignore' > ./docker/db/dump/.gitignore
+    tee ./docker/certs/.gitignore << \EOS
+/*
+!/.gitignore
+EOS
+    tee ./docker/db/dump/.gitignore << \EOS
+/*
+!/.gitignore
+EOS
     touch ./docker/db/initdb.d/.gitkeep
     tee ./docker/db/my.cnf << \EOS
 [mysqld]

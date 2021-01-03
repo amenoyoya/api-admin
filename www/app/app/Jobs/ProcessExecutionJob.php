@@ -47,7 +47,7 @@ class ProcessExecutionJob implements ShouldQueue
             ['pipe', 'w'], // stderr
         ];
         if (false === ($process = proc_open($this->command, $descriptorspec, $pipes, base_path(), ['HOME' => env('HOME', '/var/www/')]))) {
-            \Log::error(date('Y-m-d H:i:s') . ' [ProcessExectionJob] failed to proc_open: ' . $this->command);
+            \Log::alert('[ProcessExectionJob] failed to proc_open: ' . $this->command);
             return;
         }
         // stdout, stderr 取得
@@ -62,7 +62,7 @@ class ProcessExecutionJob implements ShouldQueue
         // JobStatus に stdout, stderr をセットして保存
         $jobStatusId = $this->getJobStatusId();
         if (null === ($jobStatus = TrackableJob::getJobStatus($jobStatusId))) {
-            \Log::warning(date('Y-m-d H:i:s') . ' [ProcessExectionJob] failed to get job status: ' . $jobStatusId);
+            \Log::warning('[ProcessExectionJob] failed to get job status: ' . $jobStatusId);
             return;
         }
         $jobStatus->stdout = $stdout;

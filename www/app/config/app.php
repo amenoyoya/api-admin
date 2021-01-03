@@ -176,8 +176,8 @@ return [
         App\Providers\RouteServiceProvider::class,
         
         App\Providers\ValidatorServiceProvider::class,
-        App\Providers\SlackServiceProvider::class,
-
+        
+        Amenoyoya\SlackNotification\Providers\SlackServiceProvider::class,
         Amenoyoya\TrackableJob\Providers\TrackableJobServiceProvider::class,
     ],
 
@@ -231,8 +231,8 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
 
-        // use \App\Facades\Slack as \Slack
-        'Slack' => App\Facades\Slack::class,
+        // use \Amenoyoya\SlackNotification\Facades\Slack as \Slack
+        'Slack' => Amenoyoya\SlackNotification\Facades\Slack::class,
     ],
 
 ];

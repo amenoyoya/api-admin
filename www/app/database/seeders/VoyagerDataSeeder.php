@@ -41,6 +41,7 @@ class VoyagerDataSeeder extends Seeder
             ['id' => $data['data_type']['id']],
             array_merge($data['data_type'], [
                 'generate_permissions' => 1,
+                'server_side' => 1,
                 'details' => '{"order_column":null,"order_display_column":null,"order_direction":"asc","default_search_key":null,"scope":null}',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),

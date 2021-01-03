@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Providers;
+namespace Amenoyoya\SlackNotification\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Services\SlackService;
+use Amenoyoya\SlackNotification\Services\SlackService;
 
 class SlackServiceProvider extends ServiceProvider
 {

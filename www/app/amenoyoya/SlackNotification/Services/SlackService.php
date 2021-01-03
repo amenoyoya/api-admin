@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace Amenoyoya\SlackNotification\Services;
 
 use Illuminate\Notifications\Notifiable;
-use App\Notifications\SlackNotification;
+use Amenoyoya\SlackNotification\Notifications\SlackNotification;
 
 class SlackService
 {
@@ -51,6 +51,12 @@ class SlackService
      */
     protected function routeNotificationForSlack()
     {
-        return config('slack.url');
+        $config = config('slack.url');
+        // 設定が配列の場合はデータベースから読み込む: [query, args, column]
+        if (is_array($config)) {
+            $rows = \DB::select($config[0], $config[1]);
+            return @$rows[0]->{$config[2]};
+        }
+        return $config;
     }
 }
