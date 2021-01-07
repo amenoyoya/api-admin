@@ -66,10 +66,6 @@ services:
       MYSQL_DATABASE: app
       # TimeZone設定
       TZ: Asia/Tokyo
-      # VirtualHost
-      VIRTUAL_HOST: web.localhost
-      VIRTUAL_PORT: 80
-      CERT_NAME: default # ローカル環境用SSL証明書
   
   # db service container: MySQL server
   db:
@@ -125,10 +121,6 @@ services:
       PMA_HOST: db
       PMA_USER: root
       PMA_PASSWORD: root
-      # VirtualHost
-      VIRTUAL_HOST: pma.localhost
-      VIRTUAL_PORT: 80
-      CERT_NAME: default # ローカル環境用SSL証明書
   
   # mailhog service container: local SMTP server + Mail catcher
   mailhog:
@@ -147,11 +139,6 @@ services:
       # Docker socket 共有
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/work/
-    environment:
-      # VirtualHost
-      VIRTUAL_HOST: mail.localhost
-      VIRTUAL_PORT: 8025
-      CERT_NAME: default # ローカル環境用SSL証明書
 
   # redis service container: session database + cache server
   redis:
@@ -231,47 +218,22 @@ services:
       ME_CONFIG_MONGODB_SERVER: mongo # MongoDB: service://mongo:27017
       ME_CONFIG_MONGODB_PORT: 27017
       TZ: Asia/Tokyo
-      # VirtualHost
-      VIRTUAL_HOST: mongo.localhost
-      VIRTUAL_PORT: 8081
-      CERT_NAME: default # ローカル環境用SSL証明書
     
   # --- local nginx proxy: port 80, 443 を専有するため、別のプロジェクト開発時には停止する ---
   ## local nginx proxy を停止する場合: $ docker-compose stop proxy
-  # vhostプロキシサーバ
   proxy:
-    image: jwilder/nginx-proxy
+    image: steveltn/https-portal:1
+    logging:
+      driver: json-file
     # 所属ネットワーク
     networks:
       - appnet
-    privileged: true # ルート権限
     ports:
-      - "80:80"   # http
-      - "443:443" # https
+      - '80:80'
+      - '443:443'
     volumes:
       - /var/run/docker.sock/:/tmp/docker.sock/:ro
-      - /usr/share/nginx/html/
-      - /etc/nginx/vhost.d/
-      - ./docker/certs/:/etc/nginx/certs/:ro # letsencryptコンテナが ./docker/certs/ に作成したSSL証明書を読む
-      # - ./docker/nginx.conf:/etc/nginx/nginx.conf # 設定ファイル
-      # - ./docker/logs/:/var/nginx/logs/:rw # ログ
     environment:
-      DHPARAM_GENERATION: "false"
-    labels:
-      com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: "true"
+      STAGE: local # 本番環境の場合は production を指定（実際の Let's Encrypt に SSL 申請を行う）
+      DOMAINS: 'web.localhost -> http://web:80, pma.localhost -> http://pma:80, mail.localhost -> http://mailhog:8025, mongo.localhost -> http://express:8081'
 
-  # 無料SSL証明書発行コンテナ
-  letsencrypt:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    # 所属ネットワーク
-    networks:
-      - appnet
-    volumes:
-      - /var/run/docker.sock/:/var/run/docker.sock/:ro
-      - /usr/share/nginx/html/
-      - /etc/nginx/vhost.d/
-      - ./docker/certs/:/etc/nginx/certs/:rw # ./docker/certs/ にSSL証明書を書き込めるように rw モードで共有
-    depends_on:
-      - proxy # proxyコンテナの後で起動
-    environment:
-      NGINX_PROXY_CONTAINER: proxy
